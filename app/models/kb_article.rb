@@ -6,15 +6,15 @@ class KbArticle < ActiveRecord::Base
   unloadable
 
   self.locking_column = 'version'
-  self.table_name = "kb_articles"
+  self.table_name = 'kb_articles'
 
   validates_presence_of :title
   validates_presence_of :category_id
 
   belongs_to :project
-  belongs_to :category, :class_name => "KbCategory"
-  belongs_to :author,   :class_name => 'User', :foreign_key => 'author_id'
-  belongs_to :updater,  :class_name => 'User', :foreign_key => 'updater_id'
+  belongs_to :category, :class_name => 'KbCategory'
+  belongs_to :author, :class_name => 'User', :foreign_key => 'author_id'
+  belongs_to :updater, :class_name => 'User', :foreign_key => 'updater_id'
 
   acts_as_viewed
   acts_as_rated :no_rater => true
@@ -25,7 +25,7 @@ class KbArticle < ActiveRecord::Base
   acts_as_versioned :if_changed => [:title, :content, :summary]
   self.non_versioned_columns << 'comments_count'
 
-  acts_as_event :title => Proc.new {|o| status = (o.new_status ? "(#{l(:label_new_article)})" : nil ); "#{status} #{l(:label_title_articles)} ##{o.id} - #{o.title}" },
+  acts_as_event :title => Proc.new { |o| status = (o.new_status ? "(#{l(:label_new_article)})" : nil); "#{status} #{l(:label_title_articles)} ##{o.id} - #{o.title}" },
                 :description => :content,
                 :datetime => :updated_at,
                 :type => Proc.new { |o| 'article-' + (o.new_status ? 'add' : 'edit') },
@@ -39,40 +39,39 @@ class KbArticle < ActiveRecord::Base
                               :type => 'kb_articles',
                               :timestamp => :updated_at
 
-    acts_as_searchable :columns => [ "#{table_name}.title", "#{table_name}.summary", "#{table_name}.content"],
-                       :preload => [ :project ],
-                       :date_column => "#{table_name}.created_at"
+    acts_as_searchable :columns => ["#{table_name}.title", "#{table_name}.summary", "#{table_name}.content"],
+                       :preload => [:project],
+                       :date_column => :created_at
   else
     acts_as_activity_provider :find_options => {:include => :project},
                               :author_key => :author_id,
                               :type => 'kb_articles',
                               :timestamp => :updated_at
 
-    acts_as_searchable :columns => [ "#{table_name}.title", "#{table_name}.summary", "#{table_name}.content"],
-                       :include => [ :project ],
-                       :order_column => "#{table_name}.id",
-                       :date_column => "#{table_name}.created_at"
+    acts_as_searchable :columns => ["#{table_name}.title", "#{table_name}.summary", "#{table_name}.content"],
+                       :include => [:project],
+                       :date_column => :created_at
   end
 
   has_many :comments, -> { order 'created_on DESC' }, :as => :commented, :dependent => :destroy
 
-  scope :visible, lambda {|*args| { :include => :project,
-                                        :conditions => Project.allowed_to_condition(args.shift || User.current, :view_kb_articles, *args) } }
+  scope :visible, lambda { |*args| includes(:project).
+                    where(Project.allowed_to_condition(args.shift || User.current, :view_kb_articles, *args)) }
 
   def recipients
     notified = []
     # Author and assignee are always notified unless they have been
     # locked or don't want to be notified
     notified << author if author
-    notified = notified.select {|u| u.active? && u.notify_about?(self)}
+    notified = notified.select { |u| u.active? && u.notify_about?(self) }
     notified.uniq!
     notified.collect(&:mail)
   end
 
   def editable_by?(user = User.current)
     return user.allowed_to?(:edit_articles, self.project) ||
-      user.allowed_to?(:manage_articles, self.project) ||
-      (user.allowed_to?(:manage_own_articles, self.project) && self.author_id == user.id)
+        user.allowed_to?(:manage_articles, self.project) ||
+        (user.allowed_to?(:manage_own_articles, self.project) && self.author_id == user.id)
   end
 
   def attachments_deletable?(user = User.current)
@@ -81,7 +80,7 @@ class KbArticle < ActiveRecord::Base
 
   def new_status
     if self.updater_id == 0
-        true
+      true
     end
   end
 
@@ -122,8 +121,8 @@ class KbArticle < ActiveRecord::Base
 
   class Version
 
-    belongs_to :author,   :class_name => 'User', :foreign_key => 'author_id'
-    belongs_to :updater,  :class_name => 'User', :foreign_key => 'updater_id'
+    belongs_to :author, :class_name => 'User', :foreign_key => 'author_id'
+    belongs_to :updater, :class_name => 'User', :foreign_key => 'updater_id'
 
     # Return true if the content is the current page content
     def current_version?

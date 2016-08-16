@@ -133,7 +133,7 @@ module ActiveRecord #:nodoc:
             EOV
           end
          
-          raise RatedError, ":rating_range must be a range object" unless options[:rating_range].nil? || (Range === options[:rating_range])
+          raise RatedError, ':rating_range must be a range object' unless options[:rating_range].nil? || (Range === options[:rating_range])
           
           # Rails < 3
           # write_inheritable_attribute( :acts_as_rated_options , 
@@ -219,14 +219,14 @@ module ActiveRecord #:nodoc:
         def rate value, rater = nil
           # Sanity checks for the parameters
           rating_class = acts_as_rated_options[:rating_class].constantize
-          with_rater = rating_class.column_names.include? "rater_id"
-          raise RateError, "rating with no rater cannot accept a rater as a parameter" if !with_rater && !rater.nil?
+          with_rater = rating_class.column_names.include? 'rater_id'
+          raise RateError, 'rating with no rater cannot accept a rater as a parameter' if !with_rater && !rater.nil?
           if with_rater && !(acts_as_rated_options[:rater_class].constantize === rater)
-            raise RateError, "the rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable"
+            raise RateError, 'the rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable'
           end
-          raise RateError, "rating with rater must receive a rater as parameter" if with_rater && (rater.nil? || rater.id.nil?)
-          r = with_rater ? ratings.where(:conditions => ['rater_id = ?', rater.id]).first : nil
-          raise RateError, "value is out of range!" unless acts_as_rated_options[:rating_range].nil? || acts_as_rated_options[:rating_range] === value
+          raise RateError, 'rating with rater must receive a rater as parameter' if with_rater && (rater.nil? || rater.id.nil?)
+          r = with_rater ? ratings.where('rater_id = ?', rater.id).first : nil
+          raise RateError, 'value is out of range!' unless acts_as_rated_options[:rating_range].nil? || acts_as_rated_options[:rating_range] === value
           
           # Find the place to store the rating statistics if any...
           # Take care of the case of a separate statistics table
@@ -269,11 +269,11 @@ module ActiveRecord #:nodoc:
         def unrate rater
           rating_class = acts_as_rated_options[:rating_class].constantize
           if !(acts_as_rated_options[:rater_class].constantize === rater)
-            raise RateError, "The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable" 
+            raise RateError, 'The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable'
           end
-          raise RateError, "Rater must be a valid and existing object" if rater.nil? || rater.id.nil?
-          raise RateError, 'Cannot unrate if not using a rater' if !rating_class.column_names.include? "rater_id"
-          r = ratings.where(:conditions => ['rater_id = ?', rater.id]).first
+          raise RateError, 'Rater must be a valid and existing object' if rater.nil? || rater.id.nil?
+          raise RateError, 'Cannot unrate if not using a rater' if !rating_class.column_names.include? 'rater_id'
+          r = ratings.where('rater_id = ?', rater.id).first
           if !r.nil?
             target = self if attributes.has_key? 'rating_total'
             target ||= self.rating_statistic if acts_as_rated_options[:stats_class]
@@ -296,11 +296,11 @@ module ActiveRecord #:nodoc:
         def rated_by? rater
           rating_class = acts_as_rated_options[:rating_class].constantize
           if !(acts_as_rated_options[:rater_class].constantize === rater)
-             raise RateError, "The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable" 
+             raise RateError, 'The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable'
           end
-          raise RateError, "Rater must be a valid and existing object" if rater.nil? || rater.id.nil?
+          raise RateError, 'Rater must be a valid and existing object' if rater.nil? || rater.id.nil?
           raise RateError, 'Rater must be a valid rater' if !rating_class.column_names.include? "rater_id"
-          ratings.count(:conditions => ['rater_id = ?', rater.id]) > 0
+          ratings.where('rater_id = ?', rater.id).count > 0
         end
             
         private
@@ -401,12 +401,12 @@ module ActiveRecord #:nodoc:
         # Will raise an error if this acts_as_rated is without a rater.
         def find_rated_by rater
           rating_class = acts_as_rated_options[:rating_class].constantize
-          raise RateError, "The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable" if !(acts_as_rated_options[:rater_class].constantize === rater)
-          raise RateError, 'Cannot find_rated_by if not using a rater' if !rating_class.column_names.include? "rater_id"
-          raise RateError, "Rater must be an existing object with an id" if rater.id.nil?
+          raise RateError, 'The rater object must be the one used when defining acts_as_rated (or a descendent of it). other objects are not acceptable' if !(acts_as_rated_options[:rater_class].constantize === rater)
+          raise RateError, 'Cannot find_rated_by if not using a rater' if !rating_class.column_names.include? 'rater_id'
+          raise RateError, 'Rater must be an existing object with an id' if rater.id.nil?
           rated_class = ActiveRecord::Base.send(:class_name_of_active_record_descendant, self).to_s
-          conds = [ 'rated_type = ? AND rater_id = ?', rated_class, rater.id ]
-          acts_as_rated_options[:rating_class].constantize.where(:conditions => conds).collect {|r| r.rated_type.constantize.find_by_id r.rated.id }
+          acts_as_rated_options[:rating_class].constantize.where('rated_type = ? AND rater_id = ?', rated_class, rater.id).
+              collect {|r| r.rated_type.constantize.find_by_id r.rated.id }
         end
 
        
@@ -416,14 +416,14 @@ module ActiveRecord #:nodoc:
         # * <tt>round_it</tt> - round the rating average before comparing?. Defaults to true. Passing false will result in a faster query
         def find_by_rating value, precision = 10, round = true
           rating_class = acts_as_rated_options[:rating_class].constantize
-          if column_names.include? "rating_avg"
+          if column_names.include? 'rating_avg'
             if Range === value 
               conds = round ? [ 'round(rating_avg, ?) BETWEEN ? AND ?', precision.to_i, value.begin, value.end ] : 
                               [ 'rating_avg BETWEEN ? AND ?', value.begin, value.end ]
             else
               conds = round ? [ 'round(rating_avg, ?) = ?', precision.to_i, value ] : [ 'rating_avg = ?', value ]
             end
-            find :all, :conditions => conds
+            where(*conds).all
           else
             if round
               base_sql = <<-EOS
